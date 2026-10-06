@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulator Instalasi Listrik Gedung Bertingkat</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#eef2ee;--fg:#14213d;--card:#fff;--mut:#5b6b7f;--line:#cfd9d2;--cu:#c8702a;--ok:#1f9d6b;--warn:#c98a00;--bad:#d33f3f;--wall:#fbfcfa}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1720;--fg:#e6edf5;--card:#18232f;--mut:#93a4b8;--line:#2a3948;--cu:#e58f45;--ok:#3ccf95;--warn:#f0b429;--bad:#ff6b6b;--wall:#1d2b39}}
+:root[data-theme="dark"]{--bg:#0f1720;--fg:#e6edf5;--card:#18232f;--mut:#93a4b8;--line:#2a3948;--cu:#e58f45;--ok:#3ccf95;--warn:#f0b429;--bad:#ff6b6b;--wall:#1d2b39}
+*,*:before,*:after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 'IBM Plex Sans',system-ui,sans-serif;
+background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:24px 24px}
+main{max-width:1080px;margin:0 auto;padding:20px 14px 40px}
+h1{font-size:clamp(22px,4vw,32px);margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--mut);margin:0 0 16px;max-width:70ch}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:14px}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.box{background:var(--card);border:1.5px solid var(--fg);border-radius:6px;padding:12px}
+svg{width:100%;height:auto;display:block}
+.fl{border-left:6px solid var(--line);margin-bottom:10px}
+.fl.ok{border-color:var(--ok)}.fl.warn{border-color:var(--warn)}.fl.trip,.fl.fire{border-color:var(--bad)}
+.hd{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline}
+.hd b{font-size:16px}.pill{font-size:13px;font-weight:600}
+.ok .pill{color:var(--ok)}.warn .pill{color:var(--warn)}.trip .pill,.fire .pill{color:var(--bad)}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px;align-items:center}
+.row small{color:var(--mut);min-width:64px}
+button{font:inherit;cursor:pointer;border:1.5px solid var(--fg);background:transparent;color:var(--fg);border-radius:5px;padding:4px 9px;font-size:13px}
+button:focus-visible{outline:3px solid var(--cu);outline-offset:2px}
+button.on{background:var(--fg);color:var(--bg)}
+button.big{padding:8px 14px;font-weight:600;font-size:14px}
+.meta{font-size:13px;color:var(--mut);margin-top:6px}
+.score{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.score h2{margin:0;font-size:18px}
+.badge{font-weight:700}
+.rules{margin:10px 0 0;padding-left:18px;color:var(--mut);font-size:13px}
+.flow{stroke-dasharray:8 6;animation:mv linear infinite}
+@keyframes mv{to{stroke-dashoffset:-28}}
+.fire{animation:pl .6s ease-in-out infinite alternate}
+@keyframes pl{to{opacity:.55}}
+@media(prefers-reduced-motion:reduce){.flow,.fire{animation:none}}
+.sl input{flex:1;min-width:110px;accent-color:var(--cu)}.sl b{font-size:13px}
+button{touch-action:manipulation}
+@media(max-width:820px){main{padding:8px 10px 40px}h1{font-size:20px}.sub{font-size:13px;margin-bottom:10px}
+.grid{display:block}.bld{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;padding:4px;margin-bottom:10px}
+.bld svg{height:38vh;max-height:330px}
+button{min-height:40px;padding:6px 12px;font-size:14px}.row{gap:8px}.row small{min-width:56px}
+.sl input{min-width:0;height:34px}.fl .pill{font-size:12px}}
+</style>
+</head>
+<body>
+<main>
+<h1>Gedung 3 Lantai: Instalasi Listrik + PLTS Atap</h1>
+<p class="sub">Sisi elektro: pilih kabel dan MCB tiap lantai. Sisi sipil: pastikan rangka atap kuat menahan panel surya dan angin. Lolos kedua uji dengan biaya sehemat mungkin.</p>
+<div class="grid">
+ <div class="box bld"><svg id="svg" viewBox="0 -60 420 410" role="img" aria-label="Denah instalasi listrik gedung 3 lantai"></svg></div>
+ <div>
+  <div id="ctl"></div>
+  <div class="box" id="sc"></div>
+  <div class="box" id="pvb" style="margin-top:14px">
+   <div class="score"><h2>PLTS atap (sipil + elektro)</h2></div>
+   <div class="row sl"><small>Jam</small><input type="range" id="hr" min="6" max="18" step="0.5" value="12" aria-label="Jam" oninput="Q.hr=+this.value;up()"><b id="hrv"></b></div>
+   <div class="row sl"><small>Panel</small><input type="range" id="np" min="0" max="15" value="6" aria-label="Jumlah panel" oninput="Q.n=+this.value;up()"><b id="npv"></b></div>
+   <div id="pvd"></div>
+  </div>
+ </div>
+</div>
+</main>
+<script>
+const V=220,PF=.85,RHO=.0175;
+const CAB=[{a:1.5,k:18,c:6},{a:2.5,k:24,c:9},{a:4,k:32,c:14},{a:6,k:41,c:20},{a:10,k:57,c:33}];
+const MCB=[6,10,16,20,25,32];
+const F=[
+ {L:15,ph:'R',ld:[['Lampu','💡',200],['Stopkontak','🔌',800],['AC 1 PK','❄️',900],['Lift mini','🛗',1500]]},
+ {L:30,ph:'S',ld:[['Lampu','💡',200],['Stopkontak','🔌',600],['AC 2 unit','❄️',1800],['Pompa air','💧',750]]},
+ {L:45,ph:'T',ld:[['Lampu','💡',150],['Stopkontak','🔌',500],['AC 1 PK','❄️',900],['Oven','🔥',2000]]}];
+const S={on:F.map(()=>[1,1,1,0]),ci:[1,1,1],mi:[2,2,2]};
+const rp=n=>'Rp'+Math.round(n).toLocaleString('id-ID')+'rb';
+function ev(P,L,ci,mi){
+ const c=CAB[ci],m=MCB[mi],I=P/(V*PF),dp=2*I*RHO*L/c.a/V*100;
+ let s='ok',msg='Aman';
+ if(P===0){s='off';msg='Tidak ada beban'}
+ else if(I>m){s='trip';msg='MCB trip: beban '+I.toFixed(1)+' A melebihi '+m+' A'}
+ else if(I>c.k){s='fire';msg='Kabel kepanasan: '+I.toFixed(1)+' A melebihi KHA '+c.k+' A'}
+ else if(m>c.k){s='warn';msg='MCB '+m+' A lebih besar dari KHA kabel '+c.k+' A. Kabel tidak terlindungi'}
+ else if(dp>5){s='warn';msg='Drop tegangan '+dp.toFixed(1)+'% (maks 5%). Lampu redup'}
+ return{I,dp,s,msg,c,m,ratio:I/c.k};
+}
+const cost=(i,ci,mi)=>CAB[ci].c*F[i].L+30+MCB[mi]*2;
+const P=i=>F[i].ld.reduce((t,l,j)=>t+(S.on[i][j]?l[2]:0),0);
+const PF_=i=>F[i].ld.reduce((t,l)=>t+l[2],0);
+function best(i){let b=1e9;for(let c=0;c<CAB.length;c++)for(let m=0;m<MCB.length;m++){
+ if(ev(PF_(i),F[i].L,c,m).s==='ok')b=Math.min(b,cost(i,c,m));}return b}
+const col={ok:'var(--ok)',warn:'var(--warn)',trip:'var(--bad)',fire:'var(--bad)',off:'var(--mut)'};
+function draw(){
+ let g='<rect x="0" y="322" width="420" height="4" fill="var(--fg)"/>';
+ g+='<rect x="8" y="238" width="64" height="84" rx="4" fill="var(--card)" stroke="var(--fg)" stroke-width="2"/><text x="40" y="262" text-anchor="middle" font-size="22">🏭</text><text x="40" y="284" text-anchor="middle" font-size="11" fill="var(--fg)" font-weight="700">PANEL</text><text x="40" y="299" text-anchor="middle" font-size="10" fill="var(--mut)">3 fasa</text><text x="40" y="313" text-anchor="middle" font-size="9" fill="var(--mut)">R · S · T</text>';
+ g+=roof();
+ F.forEach((f,i)=>{
+  const y=230-100*i,e=ev(P(i),f.L,S.ci[i],S.mi[i]);
+  const dark=e.s==='trip'||e.s==='off';
+  const glow=e.s==='fire'?'rgba(211,63,63,.35)':dark?'rgba(0,0,0,.28)':'rgba(255,196,60,'+(.12+Math.min(.3,e.ratio*.3))+')';
+  g+='<rect x="100" y="'+y+'" width="300" height="100" fill="var(--wall)" stroke="var(--fg)" stroke-width="2"/>';
+  g+='<rect class="'+(e.s==='fire'?'fire':'')+'" x="101" y="'+(y+1)+'" width="298" height="98" fill="'+glow+'"/>';
+  g+='<text x="108" y="'+(y+16)+'" font-size="12" font-weight="700" fill="var(--fg)">Lantai '+(i+1)+' · fasa '+f.ph+' · '+f.L+' m</text>';
+  f.ld.forEach((l,j)=>{const x=135+j*68;
+   g+='<text x="'+x+'" y="'+(y+55)+'" text-anchor="middle" font-size="26" opacity="'+(S.on[i][j]&&!dark?1:.22)+'">'+l[1]+'</text><text x="'+x+'" y="'+(y+68)+'" text-anchor="middle" font-size="9" fill="var(--mut)">'+l[2]+' W</text>'});
+  const cy=y+84,cc=e.s==='off'||e.s==='trip'?'var(--mut)':e.ratio<.6?'var(--ok)':e.ratio<1?'var(--warn)':'var(--bad)';
+  const dur=Math.max(.25,2.4-e.I/9);
+  g+='<line x1="90" y1="'+cy+'" x2="392" y2="'+cy+'" stroke="var(--cu)" stroke-width="'+(2+CAB.findIndex(c=>c===e.c)*.9)+'" opacity=".35"/>';
+  if(e.s!=='off'&&e.s!=='trip')g+='<line class="flow" style="animation-duration:'+dur+'s" x1="90" y1="'+cy+'" x2="392" y2="'+cy+'" stroke="'+cc+'" stroke-width="3"/>';
+  g+='<rect x="76" y="'+(cy-11)+'" width="30" height="22" rx="3" fill="var(--card)" stroke="'+col[e.s]+'" stroke-width="2.5"/><text x="91" y="'+(cy+4)+'" text-anchor="middle" font-size="10" font-weight="700" fill="var(--fg)">'+e.m+'A</text>';
+  if(e.s==='trip')g+='<text x="250" y="'+(cy-4)+'" text-anchor="middle" font-size="13" font-weight="700" fill="var(--bad)">MCB TRIP</text>';
+  if(e.s==='fire')g+='<text x="250" y="'+(cy-6)+'" text-anchor="middle" font-size="18">🔥 Kabel panas</text>';
+ });
+ g+='<line x1="90" y1="300" x2="90" y2="40" stroke="var(--cu)" stroke-width="5" opacity=".5"/><line x1="72" y1="300" x2="90" y2="300" stroke="var(--cu)" stroke-width="5" opacity=".5"/>';
+ document.getElementById('svg').innerHTML=g;
+}
+function ctl(){
+ let h='';
+ for(let i=2;i>=0;i--){const f=F[i],e=ev(P(i),f.L,S.ci[i],S.mi[i]);
+  h+='<div class="box fl '+e.s+'"><div class="hd"><b>Lantai '+(i+1)+'</b><span class="pill">'+(e.s==='ok'?'✔ ':e.s==='off'?'○ ':'⚠ ')+e.msg+'</span></div>';
+  h+='<div class="row"><small>Beban</small>'+f.ld.map((l,j)=>'<button class="'+(S.on[i][j]?'on':'')+'" aria-pressed="'+!!S.on[i][j]+'" onclick="tg('+i+','+j+')">'+l[1]+' '+l[0]+'</button>').join('')+'</div>';
+  h+='<div class="row"><small>Kabel</small>'+CAB.map((c,k)=>'<button class="'+(S.ci[i]===k?'on':'')+'" onclick="sc('+i+','+k+')">'+c.a+' mm²</button>').join('')+'</div>';
+  h+='<div class="row"><small>MCB</small>'+MCB.map((m,k)=>'<button class="'+(S.mi[i]===k?'on':'')+'" onclick="sm('+i+','+k+')">'+m+' A</button>').join('')+'</div>';
+  h+='<div class="meta">'+P(i)+' W → '+e.I.toFixed(1)+' A · KHA kabel '+e.c.k+' A · drop tegangan '+e.dp.toFixed(1)+'%</div></div>';}
+ document.getElementById('ctl').innerHTML=h;
+}
+function score(){
+ let okN=0,tot=0,opt=0;
+ F.forEach((f,i)=>{const e=ev(PF_(i),f.L,S.ci[i],S.mi[i]);if(e.s==='ok')okN++;tot+=cost(i,S.ci[i],S.mi[i]);opt+=best(i)});
+ const eff=opt/tot*100;
+ let r,c;
+ if(okN<3){r='Belum lolos: '+okN+' dari 3 lantai aman saat semua beban menyala';c='var(--bad)'}
+ else if(eff>=99){r='🏆 Insinyur handal! Aman dan biaya paling efisien';c='var(--ok)'}
+ else if(eff>=75){r='👍 Aman, tapi masih boros. Coba kecilkan kabel/MCB yang berlebih';c='var(--warn)'}
+ else{r='Aman, tapi sangat boros. Ukuran terlalu besar';c='var(--warn)'}
+ document.getElementById('sc').innerHTML='<div class="score"><h2>Uji beban penuh</h2><span>Biaya '+rp(tot)+(okN===3?' · efisiensi '+Math.round(eff)+'%':'')+'</span></div><p class="badge" style="color:'+c+';margin:6px 0">'+r+'</p><div class="row"><button class="big on" onclick="allOn()">Nyalakan semua beban</button><button class="big" onclick="reset()">Reset</button></div><ul class="rules"><li>Arus beban I = P ÷ (220 V × 0,85). Pilih MCB di atas I, tetapi tidak melebihi KHA kabel.</li><li>Drop tegangan = 2·I·ρ·L ÷ A, batasnya 5% dari 220 V. Kabel panjang butuh penampang lebih besar.</li><li>Biaya termasuk kabel per meter dan MCB. Semakin besar, semakin mahal.</li></ul>';
+}
+const FR=[{n:'Kayu',cap:40,c:8000},{n:'Baja ringan',cap:52,c:12000},{n:'Baja WF',cap:70,c:22000}];
+const INV=[{k:3,c:8000},{k:5,c:12000},{k:8,c:18000}],TL=[0,10,20,30],REF=40;
+const Q={hr:12,n:6,t:1,f:1,iv:1};
+const jt=n=>'Rp'+(n/1000).toFixed(1).replace('.',',')+' juta';
+function pv(n,ti,fi,ii,hr){
+ const t=TL[ti],fr=FR[fi],iv=INV[ii],tf=Math.cos((t-10)*Math.PI/180);
+ const load=10+25*(1+t/45)+33*n/40,kwp=n*.55,yld=kwp*4.5*.8*tf,ratio=kwp/iv.k;
+ const irr=hr>6&&hr<18?Math.pow(Math.sin(Math.PI*(hr-6)/12),4):0,dc=kwp*irr*.8*tf;
+ return{t,fr,iv,load,kwp,yld,ratio,irr,ac:Math.min(dc,iv.k),roofOk:load<=fr.cap,invOk:n>0&&ratio>=.8&&ratio<=1.3,covOk:yld>=.4*REF,cost:n*3000+iv.c+fr.c};
+}
+let OPT=1e9;
+for(let n=1;n<=15;n++)for(let t=0;t<4;t++)for(let f=0;f<3;f++)for(let i=0;i<3;i++){const a=pv(n,t,f,i,12);if(a.roofOk&&a.invOk&&a.covOk)OPT=Math.min(OPT,a.cost)}
+function roof(){
+ const a=pv(Q.n,Q.t,Q.f,Q.iv,Q.hr),bad=!a.roofOk,th=a.t*Math.PI/180,ph=Math.PI*(Q.hr-6)/12;
+ const sx=110+(Q.hr-6)/12*290,sy=-8-30*Math.sin(ph);
+ let g='<rect x="96" y="20" width="308" height="8" fill="'+(bad?'var(--bad)':'var(--fg)')+'"/>';
+ for(let i=0;i<Q.n;i++){const x=104+i*19.5,y=bad?18+(i%2)*3:18;
+  g+='<line x1="'+x+'" y1="'+y+'" x2="'+(x+16*Math.cos(th))+'" y2="'+(y-16*Math.sin(th))+'" stroke="'+(a.irr>.3?'#3f7bff':'#2b4a9a')+'" stroke-width="4" stroke-linecap="round"/>'}
+ if(Q.n>0)for(let k=0;k<3;k++)g+='<line x1="'+sx+'" y1="'+(sy+12)+'" x2="'+(160+k*80)+'" y2="14" stroke="#f5b400" stroke-width="1.5" stroke-dasharray="3 4" opacity="'+(a.irr*.7)+'"/>';
+ g+='<text x="'+sx+'" y="'+(sy+8)+'" text-anchor="middle" font-size="24" opacity="'+(.35+.65*a.irr)+'">☀️</text>';
+ g+='<text x="8" y="-50" font-size="11" font-weight="700" fill="'+(bad?'var(--bad)':'var(--fg)')+'">Rangka '+a.fr.n+': '+a.load.toFixed(0)+' / '+a.fr.cap+' kg/m²'+(bad?' ⚠ lendut':'')+'</text>';
+ g+='<rect x="8" y="6" width="64" height="26" rx="4" fill="var(--card)" stroke="'+(a.invOk?'var(--ok)':'var(--warn)')+'" stroke-width="2"/><text x="40" y="23" text-anchor="middle" font-size="11" font-weight="700" fill="var(--fg)">INV '+a.iv.k+' kW</text>';
+ g+='<line x1="72" y1="19" x2="96" y2="19" stroke="var(--cu)" stroke-dasharray="4 3"/><line x1="40" y1="34" x2="40" y2="238" stroke="var(--cu)" stroke-width="3" opacity=".3"/>';
+ if(a.ac>0)g+='<line class="flow" style="animation-duration:'+Math.max(.3,1.6-a.ac/4)+'s" x1="40" y1="34" x2="40" y2="238" stroke="var(--ok)" stroke-width="3"/>';
+ return g;
+}
+function pvUI(){
+ const a=pv(Q.n,Q.t,Q.f,Q.iv,Q.hr),ld=(P(0)+P(1)+P(2))/1000,net=a.ac-ld;
+ document.getElementById('hr').value=Q.hr;document.getElementById('np').value=Q.n;
+ document.getElementById('hrv').textContent=Math.floor(Q.hr)+(Q.hr%1?':30':':00');
+ document.getElementById('npv').textContent=Q.n+' × 550 Wp = '+a.kwp.toFixed(2)+' kWp';
+ const bt=(arr,key,lab)=>arr.map((x,k)=>'<button class="'+(Q[key]===k?'on':'')+'" onclick="Q.'+key+'='+k+';up()">'+lab(x)+'</button>').join('');
+ const ln=(ok,t)=>'<div style="color:'+(ok?'var(--ok)':'var(--bad)')+';font-weight:600;font-size:13px;margin:3px 0">'+(ok?'✔ ':'⚠ ')+t+'</div>';
+ let h='<div class="row"><small>Sudut</small>'+bt(TL,'t',x=>x+'°')+'</div><div class="row"><small>Rangka</small>'+bt(FR,'f',x=>x.n)+'</div><div class="row"><small>Inverter</small>'+bt(INV,'iv',x=>x.k+' kW')+'</div>';
+ h+=ln(a.roofOk,'Sipil: beban atap '+a.load.toFixed(1)+' kg/m² (mati + panel + angin) dari kapasitas '+a.fr.cap+' kg/m²');
+ h+=ln(a.invOk,'Elektro: rasio DC/AC '+a.ratio.toFixed(2)+' (ideal 0,8 sampai 1,3)');
+ h+=ln(a.covOk,'Produksi '+a.yld.toFixed(1)+' kWh/hari, target minimal '+(.4*REF)+' kWh (40% dari '+REF+' kWh)');
+ const mx=Math.max(ld,a.iv.k,1)*1.15,X=x=>20+(x-6)/12*290,Y=v=>100-v/mx*90;
+ let pth='M'+X(6)+' '+Y(0);
+ for(let x=6;x<=18;x+=.5){const b=pv(Q.n,Q.t,Q.f,Q.iv,x);pth+=' L'+X(x)+' '+Y(b.ac)}
+ h+='<svg viewBox="0 0 320 120" style="margin-top:8px" role="img" aria-label="Grafik daya PLTS dan beban"><path d="'+pth+' L'+X(18)+' '+Y(0)+'Z" fill="var(--ok)" opacity=".3"/><path d="'+pth+'" fill="none" stroke="var(--ok)" stroke-width="2"/><line x1="20" x2="310" y1="'+Y(ld)+'" y2="'+Y(ld)+'" stroke="var(--bad)" stroke-dasharray="5 4"/><line x1="'+X(Q.hr)+'" x2="'+X(Q.hr)+'" y1="10" y2="100" stroke="var(--fg)"/><text x="22" y="'+(Y(ld)-3)+'" font-size="9" fill="var(--bad)">beban '+ld.toFixed(1)+' kW</text><text x="20" y="114" font-size="9" fill="var(--mut)">06</text><text x="160" y="114" font-size="9" fill="var(--mut)">12</text><text x="300" y="114" font-size="9" fill="var(--mut)">18</text></svg>';
+ h+='<div class="meta">Jam '+Math.floor(Q.hr)+': PLTS '+a.ac.toFixed(2)+' kW · '+(net>=0?'kelebihan '+net.toFixed(2)+' kW dialirkan ke jaringan PLN':'impor dari PLN '+(-net).toFixed(2)+' kW')+(a.irr>0&&a.kwp*a.irr*.8>a.iv.k?' · inverter clipping':'')+'</div>';
+ const n=(a.roofOk?1:0)+(a.invOk?1:0)+(a.covOk?1:0),eff=OPT/a.cost*100;
+ let r,c='var(--warn)';
+ if(n<3){r='Belum lolos: '+n+' dari 3 syarat terpenuhi';c='var(--bad)'}
+ else if(eff>=99){r='🏆 Desain PLTS paling efisien!';c='var(--ok)'}
+ else r='Lolos, tapi masih boros ('+Math.round(eff)+'% efisien). Kurangi ukuran yang berlebih';
+ h+='<p class="badge" style="color:'+c+';margin:8px 0 2px">'+r+'</p><div class="meta">Biaya sistem '+jt(a.cost)+'. Asumsi: 4,5 jam matahari puncak (Jakarta), efisiensi sistem 80%, atap 40 m². Sudut besar menambah gaya angin.</div>';
+ document.getElementById('pvd').innerHTML=h;
+}
+function up(){draw();ctl();score();pvUI()}
+
+function tg(i,j){S.on[i][j]=S.on[i][j]?0:1;up()}
+function sc(i,k){S.ci[i]=k;up()}
+function sm(i,k){S.mi[i]=k;up()}
+function allOn(){S.on=F.map(()=>[1,1,1,1]);up()}
+function reset(){S.on=F.map(()=>[1,1,1,0]);S.ci=[1,1,1];S.mi=[2,2,2];Object.assign(Q,{hr:12,n:6,t:1,f:1,iv:1});up()}
+up();
+</script>
+</body>
+</html>
